@@ -13,20 +13,47 @@
             align-items: center;
             height: 100%;
             background-color: #f0f0f0;
+            flex-direction: column;
         }
         canvas {
             border: 1px solid black;
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .control-btn {
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .control-btn:active {
+            background-color: #555;
         }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas" width="400" height="400"></canvas>
 
+    <div class="controls">
+        <button class="control-btn" id="upBtn">↑</button>
+        <div>
+            <button class="control-btn" id="leftBtn">←</button>
+            <button class="control-btn" id="rightBtn">→</button>
+        </div>
+        <button class="control-btn" id="downBtn">↓</button>
+    </div>
+
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        const tileSize = 20; // Size of each tile (snake and food)
+        const tileSize = 20;
         const boardWidth = canvas.width / tileSize;
         const boardHeight = canvas.height / tileSize;
 
@@ -42,27 +69,23 @@
 
         // Initialize the game state
         function initializeGame() {
-            // Reset the game state
             snake = [{ x: 8, y: 8 }];
             direction = 'RIGHT';
             food = getRandomFoodPosition();
             score = 0;
             gameOverState = false;  // Reset the game over state
 
-            // Clear any existing game interval
             if (gameInterval) {
                 clearInterval(gameInterval);
             }
 
-            // Start the game loop
-            gameInterval = setInterval(update, 100); // Update every 100ms
-            
-            // Add event listener for key presses
-            document.removeEventListener('keydown', handleKeydown);  // Ensure only one listener is active
-            document.addEventListener('keydown', handleKeydown);  // Add listener for the new game
+            gameInterval = setInterval(update, 100);
+
+            // Reset touch controls
+            addTouchListeners();
         }
 
-        // Handle keyboard input
+        // Handle keyboard input (for non-touch devices)
         function handleKeydown(e) {
             if (directionMap[e.key]) {
                 const newDirection = directionMap[e.key];
@@ -76,11 +99,38 @@
             }
         }
 
+        // Handle touch input (for mobile devices)
+        function handleTouchMove(e) {
+            const touchX = e.changedTouches[0].clientX;
+            const touchY = e.changedTouches[0].clientY;
+
+            // Calculate the direction based on touch location
+            const canvasRect = canvas.getBoundingClientRect();
+            const centerX = canvasRect.left + canvasRect.width / 2;
+            const centerY = canvasRect.top + canvasRect.height / 2;
+
+            if (touchY < centerY && direction !== 'DOWN') {
+                direction = 'UP';
+            } else if (touchY > centerY && direction !== 'UP') {
+                direction = 'DOWN';
+            } else if (touchX < centerX && direction !== 'RIGHT') {
+                direction = 'LEFT';
+            } else if (touchX > centerX && direction !== 'LEFT') {
+                direction = 'RIGHT';
+            }
+        }
+
+        // Add event listeners for touch controls
+        function addTouchListeners() {
+            canvas.addEventListener('touchstart', handleTouchMove);
+            canvas.addEventListener('touchmove', handleTouchMove);
+            canvas.addEventListener('touchend', handleTouchMove);
+        }
+
         // Update the game state
         function update() {
             const head = { ...snake[0] };
 
-            // Move the snake in the current direction
             switch (direction) {
                 case 'UP': head.y -= 1; break;
                 case 'DOWN': head.y += 1; break;
@@ -88,34 +138,28 @@
                 case 'RIGHT': head.x += 1; break;
             }
 
-            // Check for collision with the walls
             if (head.x < 0 || head.x >= boardWidth || head.y < 0 || head.y >= boardHeight) {
                 gameOver();
                 return;
             }
 
-            // Check for collision with itself
             if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
                 gameOver();
                 return;
             }
 
-            // Add the new head to the snake
             snake.unshift(head);
 
-            // Check if the snake eats the food
             if (head.x === food.x && head.y === food.y) {
                 score += 10;
-                food = getRandomFoodPosition(); // Generate new food
+                food = getRandomFoodPosition();
             } else {
-                snake.pop(); // Remove the tail
+                snake.pop();
             }
 
-            // Draw everything
             draw();
         }
 
-        // Get random food position
         function getRandomFoodPosition() {
             return {
                 x: Math.floor(Math.random() * boardWidth),
@@ -123,31 +167,25 @@
             };
         }
 
-        // Draw the game state
         function draw() {
-            // Clear the canvas
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw the snake
             snake.forEach((segment, index) => {
                 ctx.fillStyle = index === 0 ? 'green' : 'darkgreen';
                 ctx.fillRect(segment.x * tileSize, segment.y * tileSize, tileSize, tileSize);
             });
 
-            // Draw the food
             ctx.fillStyle = 'red';
             ctx.fillRect(food.x * tileSize, food.y * tileSize, tileSize, tileSize);
 
-            // Draw the score
             ctx.fillStyle = 'black';
             ctx.font = '20px Arial';
             ctx.fillText('Score: ' + score, 10, 30);
         }
 
-        // Handle game over state
         function gameOver() {
-            if (gameOverState) return;  // Prevent multiple game-over prompts
-            gameOverState = true;  // Mark the game as over
+            if (gameOverState) return;
+            gameOverState = true;
 
             ctx.fillStyle = 'black';
             ctx.font = '30px Arial';
@@ -155,16 +193,31 @@
             ctx.font = '20px Arial';
             ctx.fillText('Final Score: ' + score, canvas.width / 2 - 60, canvas.height / 2 + 30);
 
-            // Prompt for restart
             setTimeout(() => {
                 const restart = confirm('Do you want to play again?');
                 if (restart) {
-                    initializeGame(); // Restart the game
+                    initializeGame();
                 }
-            }, 1000); // Delay restart prompt for 1 second
+            }, 1000);
         }
 
-        // Initialize the game when the page is loaded
+        // Handle on-screen button controls
+        document.getElementById('upBtn').addEventListener('click', () => {
+            if (direction !== 'DOWN') direction = 'UP';
+        });
+
+        document.getElementById('downBtn').addEventListener('click', () => {
+            if (direction !== 'UP') direction = 'DOWN';
+        });
+
+        document.getElementById('leftBtn').addEventListener('click', () => {
+            if (direction !== 'RIGHT') direction = 'LEFT';
+        });
+
+        document.getElementById('rightBtn').addEventListener('click', () => {
+            if (direction !== 'LEFT') direction = 'RIGHT';
+        });
+
         window.onload = initializeGame;
     </script>
 </body>
