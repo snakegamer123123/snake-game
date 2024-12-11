@@ -30,7 +30,7 @@
         const boardWidth = canvas.width / tileSize;
         const boardHeight = canvas.height / tileSize;
 
-        let snake, direction, food, score, gameInterval;
+        let snake, direction, food, score, gameInterval, gameOverState;
 
         // Movement key codes for arrow keys
         const directionMap = {
@@ -47,6 +47,7 @@
             direction = 'RIGHT';
             food = getRandomFoodPosition();
             score = 0;
+            gameOverState = false;  // Reset the game over state
 
             // Clear any existing game interval
             if (gameInterval) {
@@ -145,6 +146,9 @@
 
         // Handle game over state
         function gameOver() {
+            if (gameOverState) return;  // Prevent multiple game-over prompts
+            gameOverState = true;  // Mark the game as over
+
             ctx.fillStyle = 'black';
             ctx.font = '30px Arial';
             ctx.fillText('Game Over!', canvas.width / 2 - 90, canvas.height / 2);
