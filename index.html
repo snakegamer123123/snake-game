@@ -42,16 +42,127 @@
 
         // Initialize the game state
         function initializeGame() {
+            // Reset the game state
             snake = [{ x: 8, y: 8 }];
             direction = 'RIGHT';
             food = getRandomFoodPosition();
             score = 0;
-            clearInterval(gameInterval); // Clear any previous game intervals
+
+            // Clear any existing game interval
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+
+            // Start the game loop
             gameInterval = setInterval(update, 100); // Update every 100ms
-            document.addEventListener('keydown', handleKeydown); // Add keydown listener
+            
+            // Add event listener for key presses
+            document.removeEventListener('keydown', handleKeydown);  // Ensure only one listener is active
+            document.addEventListener('keydown', handleKeydown);  // Add listener for the new game
         }
 
         // Handle keyboard input
         function handleKeydown(e) {
             if (directionMap[e.key]) {
-                con
+                const newDirection = directionMap[e.key];
+                // Prevent the snake from reversing direction
+                if ((newDirection === 'UP' && direction !== 'DOWN') ||
+                    (newDirection === 'DOWN' && direction !== 'UP') ||
+                    (newDirection === 'LEFT' && direction !== 'RIGHT') ||
+                    (newDirection === 'RIGHT' && direction !== 'LEFT')) {
+                    direction = newDirection;
+                }
+            }
+        }
+
+        // Update the game state
+        function update() {
+            const head = { ...snake[0] };
+
+            // Move the snake in the current direction
+            switch (direction) {
+                case 'UP': head.y -= 1; break;
+                case 'DOWN': head.y += 1; break;
+                case 'LEFT': head.x -= 1; break;
+                case 'RIGHT': head.x += 1; break;
+            }
+
+            // Check for collision with the walls
+            if (head.x < 0 || head.x >= boardWidth || head.y < 0 || head.y >= boardHeight) {
+                gameOver();
+                return;
+            }
+
+            // Check for collision with itself
+            if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                gameOver();
+                return;
+            }
+
+            // Add the new head to the snake
+            snake.unshift(head);
+
+            // Check if the snake eats the food
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                food = getRandomFoodPosition(); // Generate new food
+            } else {
+                snake.pop(); // Remove the tail
+            }
+
+            // Draw everything
+            draw();
+        }
+
+        // Get random food position
+        function getRandomFoodPosition() {
+            return {
+                x: Math.floor(Math.random() * boardWidth),
+                y: Math.floor(Math.random() * boardHeight)
+            };
+        }
+
+        // Draw the game state
+        function draw() {
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the snake
+            snake.forEach((segment, index) => {
+                ctx.fillStyle = index === 0 ? 'green' : 'darkgreen';
+                ctx.fillRect(segment.x * tileSize, segment.y * tileSize, tileSize, tileSize);
+            });
+
+            // Draw the food
+            ctx.fillStyle = 'red';
+            ctx.fillRect(food.x * tileSize, food.y * tileSize, tileSize, tileSize);
+
+            // Draw the score
+            ctx.fillStyle = 'black';
+            ctx.font = '20px Arial';
+            ctx.fillText('Score: ' + score, 10, 30);
+        }
+
+        // Handle game over state
+        function gameOver() {
+            ctx.fillStyle = 'black';
+            ctx.font = '30px Arial';
+            ctx.fillText('Game Over!', canvas.width / 2 - 90, canvas.height / 2);
+            ctx.font = '20px Arial';
+            ctx.fillText('Final Score: ' + score, canvas.width / 2 - 60, canvas.height / 2 + 30);
+
+            // Prompt for restart
+            setTimeout(() => {
+                const restart = confirm('Do you want to play again?');
+                if (restart) {
+                    initializeGame(); // Restart the game
+                }
+            }, 1000); // Delay restart prompt for 1 second
+        }
+
+        // Initialize the game when the page is loaded
+        window.onload = initializeGame;
+    </script>
+</body>
+</html>
+
