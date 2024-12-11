@@ -218,8 +218,12 @@
             if (direction !== 'LEFT') direction = 'RIGHT';
         });
 
+        // Add event listener for keyboard control (for desktop devices)
+        document.addEventListener('keydown', handleKeydown);
+
         window.onload = initializeGame;
     </script>
 </body>
 </html>
+
 
